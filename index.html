@@ -60,12 +60,16 @@
       align-items: center;
       justify-content: center;
       color: #000;
-      font: 12px Arial, sans-serif;
+      font: bold 12px Arial, sans-serif;
       writing-mode: vertical-rl;
       text-orientation: mixed;
       border: 1px solid #000;
     }
-    .handle { height: 80px; background: #ffffcc; font-size: 14px; }
+    .handle { 
+      height: 80px; 
+      background: #ffffcc; 
+      font: bold 14px Arial, sans-serif;
+    }
     .interval-handle { height: 40px; }
 
     .interval-strip {
@@ -139,6 +143,7 @@
       flex-shrink: 0; 
       position: relative; 
       overflow: hidden; 
+      padding: 5px;
     }
     .tradingview-widget-container, .tradingview-widget-container__widget {
       height: 100% !important;
@@ -184,7 +189,7 @@
     }
     #forex-widget .timeline {
       position: absolute;
-      top: 20px;
+      top: 10px;
       left: 0;
       width: 100%;
       height: 5px;
@@ -193,7 +198,7 @@
     }
     #forex-widget .timeline-markers {
       position: absolute;
-      top: 20px;
+      top: 10px;
       left: 0;
       width: 100%;
       height: 15px;
@@ -207,10 +212,10 @@
     }
     #forex-widget .sessions-container {
       position: absolute;
-      top: 35px;
+      top: 25px;
       left: 0;
       width: 100%;
-      height: calc(100% - 35px);
+      height: calc(100% - 25px);
       display: flex;
       flex-direction: column;
       gap: 5px;
@@ -250,16 +255,17 @@
     #forex-widget .active { box-shadow: 0 0 5px rgba(255, 0, 0, 0.7); }
     #forex-widget .current-time {
       position: absolute;
-      top: 35px;
+      top: 25px;
       width: 1px;
-      height: calc(100% - 35px);
+      height: calc(100% - 25px);
       background: red;
       z-index: 4;
     }
     #forex-widget .time-label {
       position: absolute;
-      top: -25px;
-      left: -25px;
+      top: 0; /* Positioned at the top of the red line */
+      left: 50%;
+      transform: translateX(-50%);
       width: 50px;
       padding: 2px 5px;
       background: white;
@@ -271,9 +277,47 @@
       white-space: nowrap;
       z-index: 5;
     }
+
+    /* Loading Screen Styles */
+    #loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100svh;
+      background: #fff;
+      display: flex;
+      flex-direction: column; /* Stack text vertically */
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+    }
+    #loading-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #loading-screen .main-text {
+      font-size: 48px;
+      color: #ccc;
+      font-family: Arial, sans-serif;
+      font-weight: bold;
+    }
+    #loading-screen .sub-text {
+      font-size: 24px; /* Smaller font for "By Samer" */
+      color: #ccc;
+      font-family: Arial, sans-serif;
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
+  <div id="loading-screen">
+    <span class="main-text">Dashboard Loading ...</span>
+    <span class="sub-text">By Samer</span>
+  </div>
+
   <div class="container">
     <div class="upper-section" id="miniCharts"></div>
   </div>
@@ -307,6 +351,7 @@
       autosize: true,
       symbol: "",
       interval: "15",
+      range: "4D",
       timezone: "Africa/Cairo",
       theme: "light",
       style: "1",
@@ -344,6 +389,7 @@
         container.appendChild(watermark);
       }
       container.appendChild(widgetContainer);
+      return script;
     }
 
     function loadMiniCharts(interval) {
@@ -358,7 +404,6 @@
         miniCharts.appendChild(div);
       });
     }
-    loadMiniCharts("30");
 
     const intervalHandle = document.getElementById('intervalHandle');
     const intervalStrip = document.getElementById('intervalStrip');
@@ -474,7 +519,7 @@
         const now = new Date();
         const position = (currentMinutes / 1440) * width;
         currentTime.style.left = `${position}px`;
-        timeLabel.style.left = `${position - 25}px`;
+        timeLabel.style.left = `${position}px`; // Sync with red line
         timeLabel.textContent = formatTime(now.getHours(), now.getMinutes());
       }
     }
@@ -609,22 +654,24 @@
       watchlist: ["OANDA:EURUSD", "OANDA:GBPUSD", "OANDA:GBPJPY", "OANDA:USDJPY", "OANDA:AUDUSD", "OANDA:USDCAD", "OANDA:EURJPY", "OANDA:USDCHF", "OANDA:NZDUSD", "OANDA:AUDJPY", "OANDA:XAUUSD", "CFI:WTI", "COINBASE:BTCUSD", "CFI:US500", "IG:NASDAQ"],
       details: true,
       studies: [
+        "STD;MA%1Cross",
         "STD;MACD",
         "STD;RSI",
+        "STD;Average%1Directional%1Index"
       ],
       hide_volume: true,
       support_host: "https://www.tradingview.com"
     };
     function initializeTechnicalSidebar() {
       const technicalContent = document.getElementById('sidebar-technical');
-      technicalContent.innerHTML = '<div class="tradingview-widget-container"><div class="tradingview-widget-container hôtels-technical-chart"></div></div>';
+      technicalContent.innerHTML = '<div class="tradingview-widget-container"><div class="tradingview-widget-container__widget"></div></div>';
       loadTradingViewWidget(technicalContent.querySelector('.tradingview-widget-container'), technicalConfig);
     }
 
     function updateTechnicalChart(symbol) {
+      const technicalConfigCopy = { ...technicalConfig, symbol };
       const technicalContent = document.getElementById('sidebar-technical');
-      technicalConfig.symbol = symbol;
-      initializeTechnicalSidebar();
+      loadTradingViewWidget(technicalContent.querySelector('.tradingview-widget-container'), technicalConfigCopy);
     }
 
     const allChartConfig = {
@@ -638,10 +685,8 @@
       allow_symbol_change: true,
       save_image: false,
       studies: [
-        "STD;MA%1Cross",
         "STD;MACD",
-        "STD;RSI",
-        "STD;Average%1Directional%1Index"
+        "STD;RSI"
       ],
       hide_volume: true,
       support_host: "https://www.tradingview.com"
@@ -662,19 +707,40 @@
       const containers = allContent.querySelectorAll('.tradingview-widget-container');
       containers.forEach((container, index) => {
         const config = { ...allChartConfig, symbol: symbols[index] };
-        const script = document.createElement('script');
-        script.type = 'text/javascript';
-        script.async = true;
-        script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
-        script.innerHTML = JSON.stringify(config);
-        container.appendChild(script);
+        loadTradingViewWidget(container, config);
       });
     }
 
-    initializeCalendarSidebar();
-    initializeNewsSidebar();
-    initializeTechnicalSidebar();
-    initializeAllSidebar();
+    function initializeDashboard() {
+      const loadingScreen = document.getElementById('loading-screen');
+      let loadedWidgets = 0;
+      const totalWidgets = symbols.length + calendarSymbols.length + 1 + symbols.length;
+
+      function checkAllLoaded() {
+        loadedWidgets++;
+        if (loadedWidgets >= totalWidgets) {
+          setTimeout(() => {
+            loadingScreen.classList.add('hidden');
+            setTimeout(() => loadingScreen.style.display = 'none', 500);
+          }, 3000); // Increased to 3 seconds
+        }
+      }
+
+      const originalLoadTradingViewWidget = loadTradingViewWidget;
+      loadTradingViewWidget = function(container, config, symbolText) {
+        const script = originalLoadTradingViewWidget(container, config, symbolText);
+        script.onload = checkAllLoaded;
+        return script;
+      };
+
+      loadMiniCharts("30");
+      initializeCalendarSidebar();
+      initializeNewsSidebar();
+      initializeTechnicalSidebar();
+      initializeAllSidebar();
+    }
+
+    initializeDashboard();
   </script>
 </body>
 </html>
