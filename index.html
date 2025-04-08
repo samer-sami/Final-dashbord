@@ -1,0 +1,682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=0.8">
+  <title>Trading Dashboard</title>
+  <script type="text/javascript" src="https://www.cashbackforex.com/Content/remote/remote-calendar-widget.js" async></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body { height: 100svh; overflow: hidden; }
+    body { display: flex; position: relative; }
+
+    .container {
+      flex: 1;
+      height: 100svh;
+      margin-right: 25px;
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+    .upper-section {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      height: 100%;
+    }
+    .upper-partition {
+      position: relative;
+      cursor: pointer;
+    }
+    .watermark {
+      position: absolute;
+      top: 5px;
+      left: 5px;
+      color: #000;
+      font: bold clamp(8px, 0.8vw, 14px) Arial, sans-serif;
+      cursor: pointer;
+      z-index: 10;
+    }
+
+    .handle-container {
+      position: fixed;
+      right: 0;
+      top: 0;
+      width: 25px;
+      height: 100svh;
+      background: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 10px;
+      z-index: 2000;
+    }
+    .interval-handle, .handle {
+      width: 25px;
+      background: #cce5ff;
+      cursor: pointer;
+      border-radius: 5px 0 0 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #000;
+      font: 12px Arial, sans-serif;
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      border: 1px solid #000;
+    }
+    .handle { height: 80px; background: #ffffcc; font-size: 14px; }
+    .interval-handle { height: 40px; }
+
+    .interval-strip {
+      position: absolute;
+      top: 0;
+      right: 25px;
+      width: 175px;
+      height: 40px;
+      background: #f0f0f0;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      border: 1px solid #000;
+      border-radius: 5px 0 0 5px;
+      transform: translateX(100%);
+      z-index: 2001;
+    }
+    .interval-strip.open { transform: translateX(0); }
+    .interval-strip button {
+      width: 20px;
+      height: 30px;
+      font-size: 10px;
+      cursor: pointer;
+      border: none;
+      background: #fff;
+      border-radius: 3px;
+      transition: background-color 0.2s;
+    }
+    .interval-strip button:hover { background: #e0e0e0; }
+    .interval-strip button.active { background: #0066cc; color: #fff; }
+
+    .sidebar {
+      position: fixed;
+      top: 0;
+      right: -90%;
+      width: 90%;
+      height: 100svh;
+      background: #f8f8f8;
+      z-index: 900;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.3);
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar.open { right: 25px; }
+    .sidebar-content {
+      display: none;
+      height: 100%;
+    }
+    .sidebar-content.active { display: flex; flex-direction: column; }
+    #sidebar-all { background: black; }
+    #sidebar-calendar .calendar-upper {
+      height: 75%;
+      display: flex;
+      flex-direction: row;
+    }
+    #sidebar-calendar .calendar-content {
+      width: 75%;
+      overflow-y: auto;
+    }
+    #sidebar-calendar .mini-charts {
+      width: 25%;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    #sidebar-calendar .mini-charts .upper-partition {
+      flex: 1;
+    }
+    #sidebar-calendar .sidebar-footer { 
+      height: 25%;
+      flex-shrink: 0; 
+      position: relative; 
+      overflow: hidden; 
+    }
+    .tradingview-widget-container, .tradingview-widget-container__widget {
+      height: 100% !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    .news-header {
+      display: flex;
+      align-items: center;
+      padding: 10px 0;
+      position: sticky;
+      top: 0;
+      background: #f8f8f8;
+      z-index: 900;
+      flex-shrink: 0;
+    }
+    .news-header h2 { margin-right: 10px; }
+    .news-header button {
+      padding: 5px 10px;
+      font-size: 12px;
+      cursor: pointer;
+      border: 1px solid #000;
+      background: #fff;
+      border-radius: 3px;
+      margin-right: 5px;
+    }
+    #rss-feed-container { flex: 1; overflow-y: auto; }
+    #rss-feed-list { list-style: none; padding: 0; }
+    #rss-feed-list li { margin-bottom: 15px; }
+    #rss-feed-list a { color: #0066cc; text-decoration: underline; font: bold 19px Arial; }
+    #rss-feed-list a:hover { color: #003366; }
+    #rss-feed-list .pub-date { font-size: 14px; color: #666; margin-left: 10px; }
+    #rss-feed-list p { font-size: 18px; color: #333; }
+
+    #forex-widget {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      font-family: Arial, sans-serif;
+      background: #fff;
+    }
+    #forex-widget .timeline {
+      position: absolute;
+      top: 20px;
+      left: 0;
+      width: 100%;
+      height: 5px;
+      background: #ddd;
+      z-index: 1;
+    }
+    #forex-widget .timeline-markers {
+      position: absolute;
+      top: 20px;
+      left: 0;
+      width: 100%;
+      height: 15px;
+      z-index: 2;
+    }
+    #forex-widget .time-marker {
+      position: absolute;
+      font-size: 11px;
+      color: #333;
+      white-space: nowrap;
+    }
+    #forex-widget .sessions-container {
+      position: absolute;
+      top: 35px;
+      left: 0;
+      width: 100%;
+      height: calc(100% - 35px);
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    #forex-widget .session-row {
+      position: relative;
+      flex: 1;
+      min-height: 20px;
+      max-height: 20px;
+    }
+    #forex-widget .session-bar {
+      position: absolute;
+      height: 100%;
+      color: white;
+      display: flex;
+      align-items: center;
+      padding: 0 8px;
+      font-size: 11px;
+      border-radius: 4px;
+      overflow: hidden;
+      z-index: 3;
+    }
+    #forex-widget .session-bar::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0.8;
+      z-index: -1;
+    }
+    #forex-widget .sydney::before { background: #3498db; }
+    #forex-widget .tokyo::before { background: #2ecc71; }
+    #forex-widget .london::before { background: #e67e22; }
+    #forex-widget .new-york::before { background: #e74c3c; }
+    #forex-widget .active { box-shadow: 0 0 5px rgba(255, 0, 0, 0.7); }
+    #forex-widget .current-time {
+      position: absolute;
+      top: 35px;
+      width: 1px;
+      height: calc(100% - 35px);
+      background: red;
+      z-index: 4;
+    }
+    #forex-widget .time-label {
+      position: absolute;
+      top: -25px;
+      left: -25px;
+      width: 50px;
+      padding: 2px 5px;
+      background: white;
+      border: 1px solid red;
+      border-radius: 4px;
+      font-size: 12px;
+      color: red;
+      text-align: center;
+      white-space: nowrap;
+      z-index: 5;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="upper-section" id="miniCharts"></div>
+  </div>
+  <div class="handle-container">
+    <div class="interval-handle" id="intervalHandle">15</div>
+    <div class="handle" id="toggleHandleCalendar">Calendar</div>
+    <div class="handle" id="toggleHandleNews">News</div>
+    <div class="handle" id="toggleHandleTechnical">Technical</div>
+    <div class="handle" id="toggleHandleAll">All</div>
+  </div>
+  <div class="interval-strip" id="intervalStrip">
+    <button data-interval="5">5</button>
+    <button data-interval="15">15</button>
+    <button data-interval="30" class="active">30</button>
+    <button data-interval="60">1H</button>
+    <button data-interval="240">4H</button>
+    <button data-interval="D">D</button>
+    <button data-interval="W">W</button>
+  </div>
+  <div class="sidebar" id="sidebar">
+    <div id="sidebar-calendar" class="sidebar-content"></div>
+    <div id="sidebar-news" class="sidebar-content"></div>
+    <div id="sidebar-technical" class="sidebar-content"></div>
+    <div id="sidebar-all" class="sidebar-content"></div>
+  </div>
+
+  <script>
+    const symbols = ["OANDA:EURUSD", "OANDA:GBPUSD", "OANDA:USDCHF", "OANDA:USDJPY", "OANDA:AUDUSD", "OANDA:NZDUSD", "OANDA:USDCAD", "OANDA:GBPJPY", "OANDA:XAUUSD", "CFI:WTI", "COINBASE:BTCUSD", "OANDA:SPX500USD"];
+    const calendarSymbols = ["CAPITALCOM:DXY", "OANDA:SPX500USD", "OANDA:XAUUSD"];
+    const miniConfig = {
+      autosize: true,
+      symbol: "",
+      interval: "15",
+      timezone: "Africa/Cairo",
+      theme: "light",
+      style: "1",
+      locale: "en",
+      hide_top_toolbar: true,
+      hide_legend: true,
+      allow_symbol_change: false,
+      save_image: false,
+      popup_button: true,
+      hide_volume: true,
+      support_host: "https://www.tradingview.com",
+      gridColor: "rgba(255, 255, 255, 0.06)"
+    };
+
+    function loadTradingViewWidget(container, config, symbolText) {
+      container.innerHTML = '';
+      const widgetContainer = document.createElement('div');
+      widgetContainer.className = 'tradingview-widget-container';
+      widgetContainer.innerHTML = '<div class="tradingview-widget-container__widget"></div>';
+      const script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.async = true;
+      script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+      script.innerHTML = JSON.stringify(config);
+      widgetContainer.appendChild(script);
+      if (symbolText) {
+        const watermark = document.createElement('div');
+        watermark.className = 'watermark';
+        watermark.innerText = symbolText.replace('OANDA:','').replace('COINBASE:','').replace('CFI:','').replace('CAPITALCOM:','').replace(/USD(?![A-Z])/g,'/USD');
+        watermark.dataset.symbol = symbolText;
+        watermark.addEventListener('click', () => {
+          updateTechnicalChart(symbolText);
+          toggleSidebar('technical', document.getElementById('sidebar-technical'));
+        });
+        container.appendChild(watermark);
+      }
+      container.appendChild(widgetContainer);
+    }
+
+    function loadMiniCharts(interval) {
+      const miniCharts = document.getElementById("miniCharts");
+      miniConfig.interval = interval;
+      miniCharts.innerHTML = '';
+      symbols.forEach(sym => {
+        const div = document.createElement('div');
+        div.className = 'upper-partition';
+        miniConfig.symbol = sym;
+        loadTradingViewWidget(div, miniConfig, sym);
+        miniCharts.appendChild(div);
+      });
+    }
+    loadMiniCharts("30");
+
+    const intervalHandle = document.getElementById('intervalHandle');
+    const intervalStrip = document.getElementById('intervalStrip');
+    intervalHandle.addEventListener('click', () => intervalStrip.classList.toggle('open'));
+    document.querySelectorAll('.interval-strip button').forEach(button => {
+      button.addEventListener('click', function() {
+        const interval = this.getAttribute('data-interval');
+        document.querySelectorAll('.interval-strip button').forEach(btn => btn.classList.remove('active'));
+        this.classList.add('active');
+        intervalHandle.textContent = this.textContent;
+        intervalStrip.classList.remove('open');
+        loadMiniCharts(interval);
+      });
+    });
+
+    const sidebar = document.getElementById('sidebar');
+    let activeContent = null;
+    const toggleSidebar = (targetContent, targetDiv) => {
+      if (!sidebar.classList.contains('open') || activeContent !== targetContent) {
+        document.querySelectorAll('.sidebar-content').forEach(div => div.classList.remove('active'));
+        targetDiv.classList.add('active');
+        activeContent = targetContent;
+        sidebar.classList.add('open');
+      } else {
+        sidebar.classList.remove('open');
+        activeContent = null;
+      }
+    };
+
+    document.getElementById('toggleHandleCalendar').addEventListener('click', () => toggleSidebar('calendar', document.getElementById('sidebar-calendar')));
+    document.getElementById('toggleHandleNews').addEventListener('click', () => toggleSidebar('news', document.getElementById('sidebar-news')));
+    document.getElementById('toggleHandleTechnical').addEventListener('click', () => toggleSidebar('technical', document.getElementById('sidebar-technical')));
+    document.getElementById('toggleHandleAll').addEventListener('click', () => toggleSidebar('all', document.getElementById('sidebar-all')));
+
+    const SESSIONS = [
+      { name: 'Sydney', class: 'sydney', startUTC: 20, endUTC: 5 },
+      { name: 'Tokyo', class: 'tokyo', startUTC: 0, endUTC: 9 },
+      { name: 'London', class: 'london', startUTC: 7, endUTC: 16 },
+      { name: 'New York', class: 'new-york', startUTC: 12, endUTC: 21 }
+    ];
+    const localOffset = -(new Date().getTimezoneOffset() / 60);
+
+    function formatTime(hours, minutes) {
+      const period = hours >= 12 ? 'PM' : 'AM';
+      const hour12 = hours % 12 || 12;
+      return `${hour12}:${minutes < 10 ? '0' + minutes : minutes} ${period}`;
+    }
+
+    function getLocalTimeInMinutes() {
+      const now = new Date();
+      return now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+    }
+
+    function utcToLocalHour(utcHour) {
+      return (utcHour + localOffset + 24) % 24;
+    }
+
+    function renderForexWidget() {
+      const widget = document.getElementById('forex-widget');
+      if (!widget) return;
+      const width = widget.clientWidth;
+      const currentMinutes = getLocalTimeInMinutes();
+
+      const markersContainer = widget.querySelector('.timeline-markers');
+      if (markersContainer) {
+        markersContainer.innerHTML = '';
+        for (let hour = 0; hour <= 24; hour += 2) {
+          const marker = document.createElement('div');
+          marker.className = 'time-marker';
+          marker.textContent = `${hour % 12 || 12}:00`;
+          marker.style.left = `${(hour / 24) * width}px`;
+          markersContainer.appendChild(marker);
+        }
+      }
+
+      const sessionsContainer = widget.querySelector('.sessions-container');
+      if (sessionsContainer) {
+        sessionsContainer.innerHTML = '';
+        SESSIONS.forEach(session => {
+          const row = document.createElement('div');
+          row.className = 'session-row';
+
+          const startHour = utcToLocalHour(session.startUTC);
+          const endHour = utcToLocalHour(session.endUTC);
+          const startMinutes = startHour * 60;
+          const endMinutes = endHour * 60;
+
+          const createBar = (start, end, name) => {
+            const bar = document.createElement('div');
+            bar.className = `session-bar ${session.class}`;
+            const left = (start / 1440) * width;
+            const barWidth = ((end - start) / 1440) * width;
+            bar.style.left = `${left}px`;
+            bar.style.width = `${barWidth}px`;
+            bar.textContent = `${name ? session.name + ' ' : ''}${formatTime(Math.floor(start / 60), 0)} - ${formatTime(Math.floor(end / 60), 0)}`;
+            if (currentMinutes >= start && currentMinutes < end) bar.classList.add('active');
+            row.appendChild(bar);
+          };
+
+          if (endHour < startHour) {
+            createBar(startMinutes, 1440, true);
+            createBar(0, endMinutes, false);
+          } else {
+            createBar(startMinutes, endMinutes, true);
+          }
+          sessionsContainer.appendChild(row);
+        });
+      }
+
+      const currentTime = widget.querySelector('.current-time');
+      const timeLabel = widget.querySelector('.time-label');
+      if (currentTime && timeLabel) {
+        const now = new Date();
+        const position = (currentMinutes / 1440) * width;
+        currentTime.style.left = `${position}px`;
+        timeLabel.style.left = `${position - 25}px`;
+        timeLabel.textContent = formatTime(now.getHours(), now.getMinutes());
+      }
+    }
+
+    function initializeForexWidget() {
+      renderForexWidget();
+      setInterval(renderForexWidget, 1000);
+      window.addEventListener('resize', renderForexWidget);
+    }
+
+    let newsFontSize = { title: 19, description: 18 };
+    function loadRSSFeed(url) {
+      fetch(url)
+        .then(response => response.text())
+        .then(data => {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(data, "text/xml");
+          const items = xmlDoc.querySelectorAll('item');
+          const feedList = document.getElementById('rss-feed-list');
+          feedList.innerHTML = '';
+          items.forEach(item => {
+            const title = item.querySelector('title').textContent;
+            const link = item.querySelector('link').textContent;
+            const pubDate = item.querySelector('pubDate') ? new Date(item.querySelector('pubDate').textContent).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true }) : 'No date';
+            const description = item.querySelector('description')?.textContent || '';
+            feedList.innerHTML += `
+              <li>
+                <a href="${link}" target="_blank" style="font-size: ${newsFontSize.title}px">${title}</a>
+                <span class="pub-date">${pubDate}</span>
+                <p style="font-size: ${newsFontSize.description}px">${description}</p>
+              </li>
+            `;
+          });
+        })
+        .catch(error => {
+          console.error('Error fetching RSS feed:', error);
+          document.getElementById('rss-feed-list').innerHTML = '<p>Error loading news feed.</p>';
+        });
+    }
+
+    function initializeCalendarSidebar() {
+      const calendarContent = document.getElementById('sidebar-calendar');
+      if (!calendarContent) return;
+      
+      calendarContent.innerHTML = `
+        <div class="calendar-upper">
+          <div class="calendar-content"><div id="economic-calendar-765776"></div></div>
+          <div class="mini-charts" id="calendar-mini-charts"></div>
+        </div>
+        <div class="sidebar-footer">
+          <div id="forex-widget">
+            <div class="timeline"></div>
+            <div class="timeline-markers"></div>
+            <div class="sessions-container"></div>
+            <div class="current-time"><span class="time-label"></span></div>
+          </div>
+        </div>
+      `;
+      
+      function loadCalendar() {
+        if (typeof RemoteCalendar === 'function') {
+          new RemoteCalendar({
+            DefaultTime: "today",
+            DefaultTheme: "plain",
+            Url: "https://www.cashbackforex.com",
+            SubPath: "economic-calendar",
+            IsShowEmbedButton: true,
+            DefaultCountries: "us,nz,au,eu,de,ch,jp,gb,cd",
+            DefaultImpacts: "HIGH,MEDIUM",
+            ContainerId: "economic-calendar-765776"
+          });
+        } else {
+          setTimeout(loadCalendar, 100);
+        }
+      }
+      loadCalendar();
+
+      const miniCharts = document.getElementById('calendar-mini-charts');
+      calendarSymbols.forEach(sym => {
+        const div = document.createElement('div');
+        div.className = 'upper-partition';
+        miniConfig.symbol = sym;
+        loadTradingViewWidget(div, miniConfig, sym);
+        miniCharts.appendChild(div);
+      });
+
+      initializeForexWidget();
+    }
+
+    function initializeNewsSidebar() {
+      const newsContent = document.getElementById('sidebar-news');
+      newsContent.innerHTML = `
+        <div class="news-header">
+          <h2>News</h2>
+          <button id="increaseFont">A+</button>
+          <button id="decreaseFont">A-</button>
+          <button id="refreshFeed">Refresh</button>
+        </div>
+        <div id="rss-feed-container">
+          <ul id="rss-feed-list"></ul>
+        </div>
+      `;
+      loadRSSFeed('https://www.forexlive.com/feed/news');
+      
+      newsContent.querySelector('#increaseFont').addEventListener('click', () => {
+        newsFontSize.description += 2;
+        newsFontSize.title = newsFontSize.description + 1;
+        loadRSSFeed('https://www.forexlive.com/feed/news');
+      });
+      newsContent.querySelector('#decreaseFont').addEventListener('click', () => {
+        if (newsFontSize.description > 12) {
+          newsFontSize.description -= 2;
+          newsFontSize.title = newsFontSize.description + 1;
+          loadRSSFeed('https://www.forexlive.com/feed/news');
+        }
+      });
+      newsContent.querySelector('#refreshFeed').addEventListener('click', () => loadRSSFeed('https://www.forexlive.com/feed/news'));
+      const intervalId = setInterval(() => loadRSSFeed('https://www.forexlive.com/feed/news'), 60000);
+      sidebar.addEventListener('transitionend', () => { if (!sidebar.classList.contains('open')) clearInterval(intervalId); }, { once: true });
+    }
+
+    const technicalConfig = {
+      autosize: true,
+      symbol: "OANDA:XAUUSD",
+      interval: "5",
+      timezone: "Africa/Cairo",
+      theme: "light",
+      style: "1",
+      locale: "en",
+      hide_side_toolbar: false,
+      allow_symbol_change: true,
+      watchlist: ["OANDA:EURUSD", "OANDA:GBPUSD", "OANDA:GBPJPY", "OANDA:USDJPY", "OANDA:AUDUSD", "OANDA:USDCAD", "OANDA:EURJPY", "OANDA:USDCHF", "OANDA:NZDUSD", "OANDA:AUDJPY", "OANDA:XAUUSD", "CFI:WTI", "COINBASE:BTCUSD", "CFI:US500", "IG:NASDAQ"],
+      details: true,
+      studies: [
+        "STD;MA%1Cross",
+        "STD;MACD",
+        "STD;RSI",
+        "STD;Average%1Directional%1Index"
+      ],
+      hide_volume: true,
+      support_host: "https://www.tradingview.com"
+    };
+    function initializeTechnicalSidebar() {
+      const technicalContent = document.getElementById('sidebar-technical');
+      technicalContent.innerHTML = '<div class="tradingview-widget-container"><div class="tradingview-widget-container hôtels-technical-chart"></div></div>';
+      loadTradingViewWidget(technicalContent.querySelector('.tradingview-widget-container'), technicalConfig);
+    }
+
+    function updateTechnicalChart(symbol) {
+      const technicalContent = document.getElementById('sidebar-technical');
+      technicalConfig.symbol = symbol;
+      initializeTechnicalSidebar();
+    }
+
+    const allChartConfig = {
+      autosize: true,
+      symbol: "OANDA:EURUSD",
+      interval: "5",
+      timezone: "Etc/UTC",
+      theme: "light",
+      style: "1",
+      locale: "en",
+      allow_symbol_change: true,
+      save_image: false,
+      studies: [
+        "STD;MA%1Cross",
+        "STD;MACD",
+        "STD;RSI",
+        "STD;Average%1Directional%1Index"
+      ],
+      hide_volume: true,
+      support_host: "https://www.tradingview.com"
+    };
+    function initializeAllSidebar() {
+      const allContent = document.getElementById('sidebar-all');
+      allContent.innerHTML = `
+        <div style="height: 100%; overflow-y: auto; display: grid; grid-template-columns: repeat(2, 1fr); grid-gap: 1px; padding: 1px;">
+          ${symbols.map((symbol, index) => `
+            <div class="chart-container" style="height: 400px;">
+              <div class="tradingview-widget-container" style="height:100%;width:100%">
+                <div class="tradingview-widget-container__widget" style="height:calc(100% - 32px);width:100%"></div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      const containers = allContent.querySelectorAll('.tradingview-widget-container');
+      containers.forEach((container, index) => {
+        const config = { ...allChartConfig, symbol: symbols[index] };
+        const script = document.createElement('script');
+        script.type = 'text/javascript';
+        script.async = true;
+        script.src = 'https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+        script.innerHTML = JSON.stringify(config);
+        container.appendChild(script);
+      });
+    }
+
+    initializeCalendarSidebar();
+    initializeNewsSidebar();
+    initializeTechnicalSidebar();
+    initializeAllSidebar();
+  </script>
+</body>
+</html>
